@@ -58,7 +58,7 @@ class Server(object):
 
     def _on_client_connect(self, client_reader, client_writer):
         """Called when an IRC client connects."""
-        client = irc.Client(client_reader, client_writer)
+        client = irc.Client(self, client_reader, client_writer)
         task = asyncio.Task(self._handle_client(client))
         self.clients[task] = client
         logger.info("New Connection")
