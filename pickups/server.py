@@ -112,6 +112,10 @@ class Server(object):
                 client.topic(channel, util.get_topic(conv))
                 client.list_nicks(channel,
                                   (util.get_nick(user) for user in conv.users))
+                client.joined_channels.add(channel)
+            elif line.startswith('PART'):
+                channel = line.split(' ')[1]
+                client.joined_channels.remove(channel)
             elif line.startswith('WHO'):
                 query = line.split(' ')[1]
                 if query.startswith('#'):

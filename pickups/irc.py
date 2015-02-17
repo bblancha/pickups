@@ -26,6 +26,7 @@ class Client(object):
 
         self.nickname = None
         self.sent_messages = []
+        self.joined_channels = set()
 
     def readline(self):
         return self.reader.readline()
@@ -62,7 +63,8 @@ class Client(object):
 
     def join(self, channel):
         """Tells the client to join a channel."""
-        self.write(self.nickname, 'JOIN', ':{}'.format(channel))
+        self.joined_channels.add(channel)
+        self.write(self.nickname, 'JOIN', channel)
 
     def list_nicks(self, channel, nicks):
         """Tells the client what nicks are in channel."""
@@ -85,6 +87,8 @@ class Client(object):
 
     def privmsg(self, hostmask, target, message):
         """Sends the client a message from someone."""
+        if target not in self.joined_channels:
+            self.join(target)
         for line in message.splitlines():
             if line:
                 self.write(hostmask, 'PRIVMSG', target, ':{}'.format(line))
