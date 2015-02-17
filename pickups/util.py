@@ -14,6 +14,13 @@ def conversation_to_channel(conv):
     name = get_conv_name(conv).replace(',', '_').replace(' ', '')
     name = "#{}".format(name[:49])
     conv_hash = hashlib.sha1(conv.id_.encode()).hexdigest()
+    # Avoid name collisions.
+    if name in hashes and hashes[name] != conv_hash:
+        while name in hashes:
+            if len(name) > 50:
+                name = "{}_".format(name[:-1])
+            else:
+                name = "{}_".format(name)
     hashes[name] = conv_hash
     return name
 
