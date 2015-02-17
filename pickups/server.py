@@ -119,6 +119,7 @@ class Server(object):
             elif line.startswith('WHO'):
                 query = line.split(' ')[1]
                 if query.startswith('#'):
+                    channel = line.split(' ')[1]
                     conv = util.channel_to_conversation(channel,
                                                          self._conv_list)
                     responses = [{
