@@ -153,7 +153,10 @@ class Server:
                     client.joined_channels.add(channel)
             elif line.startswith('PART'):
                 channel = line.split(' ')[1]
-                client.joined_channels.remove(channel)
+                if channel in client.joined_channels:
+                    client.joined_channels.remove(channel)
+                client.write(util.get_nick(self._user_list._self_user),
+                             'PART', channel)
             elif line.startswith('WHO'):
                 query = line.split(' ')[1]
                 if query.startswith('#'):
