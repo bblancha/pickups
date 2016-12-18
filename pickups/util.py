@@ -13,24 +13,21 @@ def strip_non_printable(s):
                    if unicodedata.category(c) not in ['Cc', 'Zs', 'So'])
 
 
+def format_conv_name(conv):
+    formatted_name = get_conv_name(conv).replace(',', '_').replace(' ', '')
+    formatted_name = strip_non_printable(formatted_name)
+    return '#{}'.format(formatted_name[:50 - 1])
+
 def conversation_to_channel(conv):
     """Return channel name for hangups.Conversation."""
     # Must be 50 characters max and not contain space or comma.
-    conv_hash = hashlib.sha1(conv.id_.encode()).hexdigest()
-    name = get_conv_name(conv).replace(',', '_').replace(' ', '')
-    name = strip_non_printable(name)
-    return '#{}[{}]'.format(name[:50 - CONV_HASH_LEN - 3],
-                            conv_hash[:CONV_HASH_LEN])
+    return format_conv_name(conv)
 
 
 def channel_to_conversation(channel, conv_list):
     """Return hangups.Conversation for channel name."""
-    match = re.search(r'\[([a-f0-9]+)\]$', channel)
-    if match is None:
-        return None
-    conv_hash = match.group(1)
-    return {hashlib.sha1(conv.id_.encode()).hexdigest()[:CONV_HASH_LEN]: conv
-            for conv in conv_list.get_all()}.get(conv_hash, None)
+    return {format_conv_name(conv): conv
+            for conv in conv_list.get_all()}.get(channel, None)
 
 
 def get_nick(user):
