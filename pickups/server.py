@@ -4,6 +4,8 @@ import logging
 import hangups
 import hangups.auth
 
+import time
+
 from . import irc, util
 
 logger = logging.getLogger(__name__)
@@ -13,8 +15,6 @@ class Server:
 
     def __init__(self, cookies=None, ascii_smileys=False):
         self.clients = {}
-        self._hangups = hangups.Client(cookies)
-        self._hangups.on_connect.add_observer(self._on_hangups_connect)
         self.ascii_smileys = ascii_smileys
 
     def run(self, host, port):
@@ -23,7 +23,9 @@ class Server:
             asyncio.start_server(self._on_client_connect, host=host, port=port)
         )
         logger.info('Waiting for hangups to connect...')
-        loop.run_until_complete(self._hangups.connect())
+
+        while True:
+            time.sleep(10)
 
     # Hangups Callbacks
 
@@ -72,7 +74,10 @@ class Server:
     @asyncio.coroutine
     def _handle_client(self, client):
         username = None
+        password = None
         welcomed = False
+
+        logger.info('Client Connected')
 
         while True:
             line = yield from client.readline()
@@ -81,12 +86,18 @@ class Server:
             if not line:
                 logger.info("Connection lost")
                 break
-            logger.info('Received: %r', line)
+
+
+            if line.startswith('PASS'):
+                password = line.split(' ', 1)[1]
+                logger.info('Received password')
+            else:
+                logger.info('Received: %r', line)
 
             if line.startswith('NICK'):
                 client.nickname = line.split(' ', 1)[1]
             elif line.startswith('USER'):
-                username = line.split(' ', 1)[1]
+                username = line.split(' ')[1]
             elif line.startswith('LIST'):
                 info = (
                     (util.conversation_to_channel(conv), len(conv.users),
@@ -137,6 +148,16 @@ class Server:
             elif line.startswith('PING'):
                 client.pong()
 
+            if username and password:
+                default_cookies_path = os.path.join(os.getcwd(), 'cookies.json')
+                auth.get_auth(CredentialsPrompt(username, password), default_cookies_path)
+                self._hangups = hangups.Client(cookies)
+                self._hangups.on_connect.add_observer(self._on_hangups_connect)
+
+                loop = asyncio.get_event_loop()
+                loop.run_until_complete(self._hangups.connect())
+
+
             if not welcomed and client.nickname and username:
                 welcomed = True
                 client.swrite(irc.RPL_WELCOME, ':Welcome to pickups!')
@@ -147,3 +168,17 @@ class Server:
                               ':- pickups Message of the Day - ')
                 client.swrite(irc.RPL_MOTD, ':- insert MOTD here')
                 client.swrite(irc.RPL_ENDOFMOTD, ':End of MOTD command')
+
+
+    class CredentialsPrompt(object):
+
+        def __init__(self, username, password):
+            self._username = username
+            self._password = password
+
+        def get_email():
+            return self._username
+
+
+        def get_password():
+            return self._password
