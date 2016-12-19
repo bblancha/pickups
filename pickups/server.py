@@ -4,18 +4,31 @@ import logging
 import hangups
 import hangups.auth
 
-import time
+import time, os
 
 from . import irc, util
 
 logger = logging.getLogger(__name__)
 
+class CredentialsPrompt(object):
+
+    def __init__(self, username, password):
+        self._username = username
+        self._password = password
+
+    def get_email():
+        return self._username
+
+
+    def get_password():
+        return self._password
 
 class Server:
 
     def __init__(self, cookies=None, ascii_smileys=False):
         self.clients = {}
         self.ascii_smileys = ascii_smileys
+        self._hangups_connected = False
 
     def run(self, host, port):
         loop = asyncio.get_event_loop()
@@ -24,14 +37,14 @@ class Server:
         )
         logger.info('Waiting for hangups to connect...')
 
-        while True:
-            time.sleep(10)
+        loop.run_forever()
 
     # Hangups Callbacks
 
     @asyncio.coroutine
     def _on_hangups_connect(self):
         """Called when hangups successfully auths with hangouts."""
+        self._hangups_connected = True
         self._user_list, self._conv_list = (
             yield from hangups.build_user_conversation_list(self._hangups)
         )
@@ -148,17 +161,18 @@ class Server:
             elif line.startswith('PING'):
                 client.pong()
 
-            if username and password:
+            if username and password and not self._hangups_connected:
                 default_cookies_path = os.path.join(os.getcwd(), 'cookies.json')
-                auth.get_auth(CredentialsPrompt(username, password), default_cookies_path)
+                cache = hangups.auth.RefreshTokenCache(default_cookies_path)
+                cookies = hangups.auth.get_auth(CredentialsPrompt(username, password), cache)
                 self._hangups = hangups.Client(cookies)
                 self._hangups.on_connect.add_observer(self._on_hangups_connect)
 
                 loop = asyncio.get_event_loop()
-                loop.run_until_complete(self._hangups.connect())
+                loop.create_task(self._hangups.connect())
 
 
-            if not welcomed and client.nickname and username:
+            if not welcomed and client.nickname and username and self._hangups_connected:
                 welcomed = True
                 client.swrite(irc.RPL_WELCOME, ':Welcome to pickups!')
                 client.tell_nick(util.get_nick(self._user_list._self_user))
@@ -170,15 +184,4 @@ class Server:
                 client.swrite(irc.RPL_ENDOFMOTD, ':End of MOTD command')
 
 
-    class CredentialsPrompt(object):
 
-        def __init__(self, username, password):
-            self._username = username
-            self._password = password
-
-        def get_email():
-            return self._username
-
-
-        def get_password():
-            return self._password
