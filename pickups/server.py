@@ -127,6 +127,11 @@ class Server:
                 asyncio.async(conv.send_message(segments))
             elif line.startswith('JOIN'):
                 channel = line.split(' ')[1]
+                if getattr(self, "_conv_list", None) == None:
+                    client.swrite(irc.ERR_NOSUCHCHANNEL,
+                        ':{}: Hangups not yet connected'.format(channel))
+                    continue
+
                 conv = util.channel_to_conversation(channel, self._conv_list)
                 if not conv:
                     client.swrite(irc.ERR_NOSUCHCHANNEL,
@@ -172,10 +177,10 @@ class Server:
                 loop.create_task(self._hangups.connect())
 
 
-            if not welcomed and client.nickname and username and self._hangups_connected:
+            if not welcomed and client.nickname and username:
                 welcomed = True
                 client.swrite(irc.RPL_WELCOME, ':Welcome to pickups!')
-                client.tell_nick(util.get_nick(self._user_list._self_user))
+#                client.tell_nick(util.get_nick(self._user_list._self_user))
 
                 # Sending the MOTD seems be required for Pidgin to connect.
                 client.swrite(irc.RPL_MOTDSTART,
