@@ -44,7 +44,6 @@ class Server:
     @asyncio.coroutine
     def _on_hangups_connect(self):
         """Called when hangups successfully auths with hangouts."""
-        self._hangups_connected = True
         self._user_list, self._conv_list = (
             yield from hangups.build_user_conversation_list(self._hangups)
         )
@@ -89,6 +88,7 @@ class Server:
         username = None
         password = None
         welcomed = False
+        self._hangups_connection_started = False
 
         logger.info('Client Connected')
 
@@ -166,7 +166,8 @@ class Server:
             elif line.startswith('PING'):
                 client.pong()
 
-            if username and password and not self._hangups_connected:
+            if username and password and not self._hangups_connection_started:
+                self._hangups_connection_started = True
                 default_cookies_path = os.path.join(os.getcwd(), 'cookies.json')
                 cache = hangups.auth.RefreshTokenCache(default_cookies_path)
                 cookies = hangups.auth.get_auth(CredentialsPrompt(username, password), cache)
