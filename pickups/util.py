@@ -7,6 +7,7 @@ import unicodedata
 
 CONV_HASH_LEN = 7
 
+hashes = {}
 
 def strip_non_printable(s):
     return ''.join(c for c in s

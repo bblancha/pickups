@@ -1,4 +1,5 @@
 import logging
+from . import util
 
 RPL_WELCOME = 1
 RPL_WHOISUSER = 311
@@ -22,12 +23,14 @@ logger = logging.getLogger(__name__)
 
 class Client(object):
 
-    def __init__(self, reader, writer):
+    def __init__(self, server, reader, writer):
+        self.server = server
         self.reader = reader
         self.writer = writer
 
         self.nickname = None
         self.sent_messages = []
+        self.joined_channels = set()
 
     def readline(self):
         return self.reader.readline()
@@ -64,7 +67,12 @@ class Client(object):
 
     def join(self, channel):
         """Tells the client to join a channel."""
-        self.write(self.nickname, 'JOIN', ':{}'.format(channel))
+        self.joined_channels.add(channel)
+        self.write(self.nickname, 'JOIN', channel)
+        conv = util.channel_to_conversation(channel, self.server._conv_list)
+        self.topic(channel, util.get_topic(conv))
+        self.list_nicks(channel, (util.get_nick(user) for user in conv.users))
+
 
     def list_nicks(self, channel, nicks):
         """Tells the client what nicks are in channel."""
@@ -87,6 +95,8 @@ class Client(object):
 
     def privmsg(self, hostmask, target, message):
         """Sends the client a message from someone."""
+        if target not in self.joined_channels:
+            self.join(target)
         for line in message.splitlines():
             if line:
                 self.write(hostmask, 'PRIVMSG', target, ':{}'.format(line))

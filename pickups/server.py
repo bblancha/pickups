@@ -75,7 +75,7 @@ class Server:
 
     def _on_client_connect(self, client_reader, client_writer):
         """Called when an IRC client connects."""
-        client = irc.Client(client_reader, client_writer)
+        client = irc.Client(self, client_reader, client_writer)
         task = asyncio.Task(self._handle_client(client))
         self.clients[task] = client
         logger.info("New Connection")
@@ -141,19 +141,23 @@ class Server:
                     client.swrite(irc.ERR_NOSUCHCHANNEL,
                             ':{}: Channel not found'.format(channel))
                 else:
-                    # If a JOIN is successful, the user receives a JOIN message
-                    # as confirmation and is then sent the channel's topic
-                    # (using RPL_TOPIC) and the list of users who are on the
-                    # channel (using RPL_NAMREPLY), which MUST include the user
-                    # joining.
+                    # If a JOIN is successful, the user receives a JOIN message as
+                    # confirmation and is then sent the channel's topic (using
+                    # RPL_TOPIC) and the list of users who are on the channel (using
+                    # RPL_NAMREPLY), which MUST include the user joining.
                     client.write(util.get_nick(self._user_list._self_user),
                                  'JOIN', channel)
                     client.topic(channel, util.get_topic(conv))
-                    client.list_nicks(channel, (util.get_nick(user)
-                                                for user in conv.users))
+                    client.list_nicks(channel,
+                                      (util.get_nick(user) for user in conv.users))
+                    client.joined_channels.add(channel)
+            elif line.startswith('PART'):
+                channel = line.split(' ')[1]
+                client.joined_channels.remove(channel)
             elif line.startswith('WHO'):
                 query = line.split(' ')[1]
                 if query.startswith('#'):
+                    channel = line.split(' ')[1]
                     conv = util.channel_to_conversation(channel,
                                                          self._conv_list)
                     if not conv:
