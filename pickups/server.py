@@ -50,7 +50,9 @@ class Server:
             yield from hangups.build_user_conversation_list(self._hangups)
         )
         self._conv_list.on_event.add_observer(self._on_hangups_event)
-        logger.info('Hangups connected. Connect your IRC clients!')
+        logger.info('Hangups connected.')
+        for client in self.clients.values():
+            client.tell_nick(util.get_nick(self._user_list._self_user))
 
     def _on_hangups_event(self, conv_event):
         """Called when a hangups conversation event occurs."""
