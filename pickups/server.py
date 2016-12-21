@@ -30,10 +30,10 @@ class Server:
         self.ascii_smileys = ascii_smileys
         self._hangups_connected = False
 
-    def run(self, host, port):
+    def run(self, host, port, ssl_cert_file, ssl_key_file):
         loop = asyncio.get_event_loop()
         sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        sc.load_cert_chain('selfsigned.cert', 'selfsigned.key')
+        sc.load_cert_chain(ssl_cert_file, ssl_key_file)
         loop.run_until_complete(
             asyncio.start_server(self._on_client_connect, ssl=sc, host=host, port=port)
         )

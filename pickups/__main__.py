@@ -21,6 +21,9 @@ if __name__ == '__main__':
     parser.add_argument('--port', help='bind port', default=6667)
     parser.add_argument('--ascii-smileys', action='store_true',
                         help='display smileys in ascii')
+    parser.add_argument('--certificate_file', default='default.cert')
+    parser.add_argument('--certificate_key', default='default.key')
     args = parser.parse_args()
 
-    Server(cookies, args.ascii_smileys).run(args.address, args.port)
+    Server(cookies, args.ascii_smileys).run(args.address, args.port,
+                                            args.certificate_file, args.certificate_key)
