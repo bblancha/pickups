@@ -25,10 +25,14 @@ class CredentialsPrompt(object):
 
 class Server:
 
-    def __init__(self, cookies=None, ascii_smileys=False):
+    def __init__(self, cookies_filename=None, ascii_smileys=False):
         self.clients = {}
         self.ascii_smileys = ascii_smileys
         self._hangups_connected = False
+        if cookies_filename:
+            self._cookies_filename = cookies_filename
+        else:
+            self._cookies_filename = 'cookies.json'
 
     def run(self, host, port, ssl_cert_file, ssl_key_file):
         loop = asyncio.get_event_loop()
@@ -184,7 +188,7 @@ class Server:
 
             if username and password and not self._hangups_connection_started:
                 self._hangups_connection_started = True
-                default_cookies_path = os.path.join(os.getcwd(), 'cookies.json')
+                default_cookies_path = os.path.join(os.getcwd(), self._cookies_filename)
                 cache = hangups.auth.RefreshTokenCache(default_cookies_path)
                 cookies = hangups.auth.get_auth(CredentialsPrompt(username, password), cache)
                 self._hangups = hangups.Client(cookies)

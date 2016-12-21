@@ -23,7 +23,6 @@ if __name__ == '__main__':
     parser.add_argument('--certificate_key', default='default.key')
     args = parser.parse_args()
 
-    default_cookies_path = os.path.join(dirs.user_cache_dir, args.cookies)
-    cookies = hangups.auth.get_auth_stdin(default_cookies_path)
+    Server(args.cookies, args.ascii_smileys).run(args.address, args.port,
+                                                 args.certificate_file, args.certificate_key)
 
-    Server(cookies, args.ascii_smileys).run(args.address, args.port)
