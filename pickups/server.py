@@ -4,7 +4,7 @@ import logging
 import hangups
 import hangups.auth
 
-import time, os
+import time, os, ssl
 
 from . import irc, util
 
@@ -32,8 +32,10 @@ class Server:
 
     def run(self, host, port):
         loop = asyncio.get_event_loop()
+        sc = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        sc.load_cert_chain('selfsigned.cert', 'selfsigned.key')
         loop.run_until_complete(
-            asyncio.start_server(self._on_client_connect, host=host, port=port)
+            asyncio.start_server(self._on_client_connect, ssl=sc, host=host, port=port)
         )
         logger.info('Waiting for hangups to connect...')
 
